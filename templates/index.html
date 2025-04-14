@@ -1,13 +1,482 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Multi-Label Classification</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satellite Image Classifier</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --primary-light: #4895ef;
+            --secondary-color: #3f37c9;
+            --success-color: #4cc9f0;
+            --light-bg: #f8f9fa;
+            --dark-text: #343a40;
+            --light-text: #f8f9fa;
+            --border-radius: 12px;
+            --box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        body {
+            padding: 0;
+            margin: 0;
+            background: linear-gradient(135deg, var(--light-bg) 0%, #e2e6ea 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--dark-text);
+            min-height: 100vh;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 60px 0 30px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+        
+        .header h1 {
+            font-weight: 700;
+            margin-bottom: 15px;
+            font-size: 2.5rem;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .content-wrapper {
+            max-width: 1200px;
+            margin: -40px auto 40px;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .upload-container {
+            max-width: 700px;
+            margin: 0 auto 40px;
+            padding: 30px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            transition: all 0.3s ease;
+        }
+        
+        .upload-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+        
+        .upload-container h3 {
+            margin-bottom: 20px;
+            font-weight: 600;
+            color: var(--primary-color);
+            text-align: center;
+        }
+        
+        .file-input-wrapper {
+            border: 2px dashed #ccc;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .file-input-wrapper:hover {
+            border-color: var(--primary-light);
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+        
+        .file-input-wrapper i {
+            font-size: 48px;
+            color: var(--primary-light);
+            margin-bottom: 15px;
+        }
+        
+        .file-input-wrapper p {
+            margin-bottom: 0;
+            color: #666;
+        }
+        
+        .file-input-wrapper input {
+            display: none;
+        }
+        
+        .selected-file {
+            margin-top: 15px;
+            display: none;
+            text-align: center;
+        }
+        
+        .btn-analyze {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border: none;
+            padding: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-analyze:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+        }
+        
+        #loading {
+            text-align: center;
+            margin: 40px auto;
+            display: none;
+        }
+        
+        .loading-spinner {
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 20px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        #loading p {
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+        
+        #results {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .results-container {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .results-title {
+            text-align: center;
+            margin-bottom: 25px;
+            color: var(--primary-color);
+            font-weight: 600;
+            position: relative;
+            padding-bottom: 15px;
+        }
+        
+        .results-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--primary-light);
+        }
+        
+        .image-comparison {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-top: 30px;
+            justify-content: center;
+        }
+        
+        .image-container {
+            flex: 1;
+            min-width: 300px;
+            max-width: 500px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            background-color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .image-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+        
+        .image-title {
+            padding: 15px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+        }
+        
+        .image-preview {
+            width: 100%;
+            height: 300px;
+            object-fit: contain;
+            padding: 15px;
+            background-color: #f1f1f1;
+            transition: all 0.3s ease;
+        }
+        
+        .image-preview:hover {
+            transform: scale(1.02);
+        }
+        
+        .prediction-section {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: rgba(67, 97, 238, 0.05);
+            border-radius: var(--border-radius);
+        }
+        
+        .prediction-section h4 {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .prediction-results {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .prediction-tag {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--success-color) 100%);
+            color: white;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .prediction-tag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.15);
+        }
+        
+        .prediction-tag i {
+            margin-right: 8px;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 50px;
+        }
+        
+        .no-predictions {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
 </head>
 <body>
-    <h1>Upload a Satellite Image</h1>
-    <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="image" accept="image/*" required>
-        <input type="submit" value="Predict">
-    </form>
+    <div class="header">
+        <h1>Satellite Image Classification</h1>
+        <p>Upload satellite imagery to analyze and identify landscape features using machine learning</p>
+    </div>
+    
+    <div class="content-wrapper">
+        <div class="upload-container">
+            <h3>Upload Your Satellite Image</h3>
+            <form id="upload-form" enctype="multipart/form-data">
+                <div class="file-input-wrapper" id="drop-area">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Drag & drop your satellite image here or click to browse</p>
+                    <input class="form-control" type="file" id="imageInput" accept="image/*">
+                </div>
+                <div class="selected-file" id="selected-file">
+                    <i class="fas fa-file-image"></i> 
+                    <span id="file-name"></span>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 btn-analyze">
+                    <i class="fas fa-satellite"></i> Analyze Image
+                </button>
+            </form>
+        </div>
+        
+        <div id="loading">
+            <div class="loading-spinner"></div>
+            <p>Processing image and analyzing landscape features...</p>
+        </div>
+        
+        <div id="results">
+            <div class="results-container">
+                <h2 class="results-title">Analysis Results</h2>
+                
+                <div class="image-comparison">
+                    <div class="image-container">
+                        <div class="image-title">
+                            <i class="fas fa-image"></i> Original Image
+                        </div>
+                        <img id="original-image" class="image-preview" src="" alt="Original Image">
+                    </div>
+                    <div class="image-container">
+                        <div class="image-title">
+                            <i class="fas fa-magic"></i> Enhanced Image
+                        </div>
+                        <img id="enhanced-image" class="image-preview" src="" alt="Enhanced Image">
+                    </div>
+                    <div class="image-container">
+                        <div class="image-title">
+                            <i class="fas fa-map-marked-alt"></i> Region Classification
+                        </div>
+                        <img id="annotated-image" class="image-preview" src="" alt="Regions Classified">
+                    </div>
+                </div>
+                
+                <div class="prediction-section">
+                    <h4><i class="fas fa-tags"></i> Detected Landscape Features</h4>
+                    <div id="prediction-results" class="prediction-results">
+                        <!-- Predictions will appear here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>© 2025 Satellite Image Classification System | Powered by Deep Learning</p>
+    </div>
+
+    <script>
+        // Make the file input work with the custom drag and drop area
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('imageInput');
+        const selectedFile = document.getElementById('selected-file');
+        const fileName = document.getElementById('file-name');
+        
+        dropArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropArea.classList.add('active');
+        });
+        
+        dropArea.addEventListener('dragleave', () => {
+            dropArea.classList.remove('active');
+        });
+        
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.classList.remove('active');
+            
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                updateFileName(e.dataTransfer.files[0].name);
+            }
+        });
+        
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) {
+                updateFileName(fileInput.files[0].name);
+            }
+        });
+        
+        function updateFileName(name) {
+            fileName.textContent = name;
+            selectedFile.style.display = 'block';
+        }
+        
+        // Form submission
+        document.getElementById('upload-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select an image to upload.');
+                return;
+            }
+            
+            // Show loading spinner
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            fetch('http://127.0.0.1:5000/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading spinner
+                document.getElementById('loading').style.display = 'none';
+                
+                // Display the original and enhanced images
+                const originalImage = document.getElementById('original-image');
+                const enhancedImage = document.getElementById('enhanced-image');
+                
+                // Use the base64 images returned from the server
+                originalImage.src = data.original_image;
+                enhancedImage.src = data.enhanced_image;
+                
+                // Add this line to display the annotated image
+                document.getElementById('annotated-image').src = data.annotated_image;
+                
+                // Display prediction results
+                const predictionsContainer = document.getElementById('prediction-results');
+                predictionsContainer.innerHTML = '';
+                
+                if (data.predicted_labels && data.predicted_labels.length > 0) {
+                    data.predicted_labels.forEach(label => {
+                        const tag = document.createElement('div');
+                        tag.className = 'prediction-tag';
+                        tag.innerHTML = `<i class="fas fa-check-circle"></i> ${label}`;
+                        predictionsContainer.appendChild(tag);
+                    });
+                } else {
+                    predictionsContainer.innerHTML = '<div class="no-predictions">No categories detected.</div>';
+                }
+                
+                // Show results with a smooth scroll
+                document.getElementById('results').style.display = 'block';
+                document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while processing the image.');
+                document.getElementById('loading').style.display = 'none';
+            });
+        });
+    </script>
 </body>
 </html>
+``` 
