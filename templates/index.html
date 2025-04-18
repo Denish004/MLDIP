@@ -1344,7 +1344,17 @@
                 const controls = document.querySelectorAll('.leaflet-control-container');
                 controls.forEach(el => el.style.display = 'none');
                 
-                // Use html2canvas with better settings for map capture
+                // Get the rectangle layer from drawnItems
+                let rectangleLayer;
+                drawnItems.eachLayer(function(layer) {
+                    rectangleLayer = layer;
+                });
+                
+                // Get pixel bounds of the rectangle on the map
+                const northWest = selectionMap.latLngToContainerPoint(rectangleLayer.getBounds().getNorthWest());
+                const southEast = selectionMap.latLngToContainerPoint(rectangleLayer.getBounds().getSouthEast());
+                
+                // Use html2canvas to capture the entire map
                 const canvas = await html2canvas(document.getElementById('selection-map'), {
                     useCORS: true,
                     allowTaint: true,
@@ -1358,11 +1368,29 @@
                 // Show controls again
                 controls.forEach(el => el.style.display = '');
                 
-                // Debug info
-                console.log('Canvas captured:', canvas.width, 'x', canvas.height);
+                // Create a new canvas with just the selected region
+                const croppedCanvas = document.createElement('canvas');
+                const scale = 2; // Match the scale used in html2canvas
+                croppedCanvas.width = (southEast.x - northWest.x) * scale;
+                croppedCanvas.height = (southEast.y - northWest.y) * scale;
+                const ctx = croppedCanvas.getContext('2d');
                 
-                // Convert canvas to a data URL first (more reliable than direct blob)
-                const dataURL = canvas.toDataURL('image/png', 1.0);
+                // Draw only the selected portion to the new canvas
+                ctx.drawImage(
+                    canvas,
+                    northWest.x * scale, 
+                    northWest.y * scale,
+                    croppedCanvas.width,
+                    croppedCanvas.height,
+                    0, 0,
+                    croppedCanvas.width,
+                    croppedCanvas.height
+                );
+                
+                console.log('Canvas cropped:', croppedCanvas.width, 'x', croppedCanvas.height);
+                
+                // Convert cropped canvas to a data URL
+                const dataURL = croppedCanvas.toDataURL('image/png', 1.0);
                 
                 // Convert data URL to blob manually
                 const byteString = atob(dataURL.split(',')[1]);
