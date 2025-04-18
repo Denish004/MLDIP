@@ -465,7 +465,100 @@
             height: 100%;
             border-radius: 5px;
         }
+
+        .geospatial-container, .report-section {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 25px;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .geospatial-container:hover, .report-section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+
+        .geospatial-container h4, .report-section h4 {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #generate-report {
+            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            border: none;
+            padding: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        #generate-report:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        /* Add these styles to your existing CSS */
+        .input-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .btn-toggle {
+            flex: 1;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-toggle.active {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .map-instruction {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .map-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .map-controls button {
+            flex: 1;
+        }
+        
+        #analyze-region:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .leaflet-container {
+            background: #f8f9fa;
+        }
     </style>
+    <!-- Leaflet for maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Add Leaflet.draw plugin for map region selection -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    
+    <!-- Add MapBox Static API for capturing map regions -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
 </head>
 <body>
     <div class="header">
@@ -475,21 +568,51 @@
     
     <div class="content-wrapper">
         <div class="upload-container">
-            <h3>Upload Your Satellite Image</h3>
-            <form id="upload-form" enctype="multipart/form-data">
-                <div class="file-input-wrapper" id="drop-area">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <p>Drag & drop your satellite image here or click to browse</p>
-                    <input class="form-control" type="file" id="imageInput" accept="image/*">
-                </div>
-                <div class="selected-file" id="selected-file">
-                    <i class="fas fa-file-image"></i> 
-                    <span id="file-name"></span>
-                </div>
-                <button type="submit" class="btn btn-primary w-100 btn-analyze">
-                    <i class="fas fa-satellite"></i> Analyze Image
+            <h3>Analyze Satellite Imagery</h3>
+            
+            <!-- Toggle buttons for input methods -->
+            <div class="input-toggle mb-4">
+                <button type="button" class="btn btn-toggle active" id="upload-toggle">
+                    <i class="fas fa-upload"></i> Upload Image
                 </button>
-            </form>
+                <button type="button" class="btn btn-toggle" id="map-toggle">
+                    <i class="fas fa-map"></i> Select Region
+                </button>
+            </div>
+            
+            <!-- File upload option (initially visible) -->
+            <div id="upload-option">
+                <form id="upload-form" enctype="multipart/form-data">
+                    <div class="file-input-wrapper" id="drop-area">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Drag & drop your satellite image here or click to browse</p>
+                        <input class="form-control" type="file" id="imageInput" accept="image/*">
+                    </div>
+                    <div class="selected-file" id="selected-file">
+                        <i class="fas fa-file-image"></i> 
+                        <span id="file-name"></span>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 btn-analyze">
+                        <i class="fas fa-satellite"></i> Analyze Image
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Map selection option (initially hidden) -->
+            <div id="map-option" style="display: none;">
+                <div class="map-instruction">
+                    <p><i class="fas fa-info-circle"></i> Draw a rectangle on the map to select an area for analysis</p>
+                </div>
+                <div id="selection-map" style="height: 400px; border-radius: 10px; margin-bottom: 20px;"></div>
+                <div class="map-controls">
+                    <button id="clear-selection" class="btn btn-secondary">
+                        <i class="fas fa-trash"></i> Clear Selection
+                    </button>
+                    <button id="analyze-region" class="btn btn-primary" disabled>
+                        <i class="fas fa-search"></i> Analyze Selected Region
+                    </button>
+                </div>
+            </div>
         </div>
         
         <div id="loading">
@@ -569,6 +692,37 @@
                         <!-- Dominant labels with confidence will appear here -->
                     </div>
                 </div>
+
+                <div class="geospatial-container" style="margin-top: 30px; display: none;" id="geospatial-container">
+                    <h4><i class="fas fa-map-marker-alt"></i> Geospatial Information</h4>
+                    <div class="coord-inputs">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label>Latitude</label>
+                                <input type="number" class="form-control" id="latitude" step="0.000001" placeholder="e.g. 40.7128">
+                            </div>
+                            <div class="col-md-6">
+                                <label>Longitude</label>
+                                <input type="number" class="form-control" id="longitude" step="0.000001" placeholder="e.g. -74.0060">
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary w-100 mb-3" id="update-coords">
+                            <i class="fas fa-sync"></i> Update Location
+                        </button>
+                    </div>
+                    <div id="map" style="height: 300px; border-radius: 10px;"></div>
+                </div>
+
+                <div class="report-section" style="margin-top: 30px; display: none;" id="report-section">
+                    <h4><i class="fas fa-file-pdf"></i> Analysis Report</h4>
+                    <p>Download a comprehensive PDF report of all analysis results</p>
+                    <button type="button" class="btn btn-primary w-100" id="generate-report">
+                        <i class="fas fa-download"></i> Generate & Download Report
+                    </button>
+                    <div class="progress mt-3" style="display: none;" id="pdf-progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -629,7 +783,7 @@
             selectedFile.style.display = 'block';
         }
         
-        // Form submission
+        // Extract the form submission handler to reuse for both input methods
         document.getElementById('upload-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const file = fileInput.files[0];
@@ -651,130 +805,164 @@
                 body: formData
             })
             .then(response => response.json())
-            .then(data => {
-                // Hide loading spinner
-                document.getElementById('loading').style.display = 'none';
-                
-                // Display the original and enhanced images
-                document.getElementById('original-image').src = data.original_image;
-                document.getElementById('enhanced-image').src = data.enhanced_image;
-                document.getElementById('annotated-image').src = data.annotated_image;
-                document.getElementById('grid-visualization').src = data.grid_visualization;
-                document.getElementById('enhanced-grid-viz').src = data.enhanced_grid_viz;
-                document.getElementById('saliency-map').src = data.saliency_map;
-                document.getElementById('segmentation').src = data.segmentation;
-
-                // Display prediction results
-                const predictionsContainer = document.getElementById('prediction-results');
-                predictionsContainer.innerHTML = '';
-                
-                if (data.predicted_labels && data.predicted_labels.length > 0) {
-                    data.predicted_labels.forEach(label => {
-                        const tag = document.createElement('div');
-                        tag.className = 'prediction-tag';
-                        tag.innerHTML = `<i class="fas fa-check-circle"></i> ${label}`;
-                        predictionsContainer.appendChild(tag);
-                    });
-                } else {
-                    predictionsContainer.innerHTML = '<div class="no-predictions">No categories detected.</div>';
-                }
-
-                // Add multi-scale analysis display
-                const multiScaleContainer = document.getElementById('multi-scale-results');
-                multiScaleContainer.innerHTML = '';
-
-                if (data.multi_scale_results && data.multi_scale_results.length > 0) {
-                    const scaleTable = document.createElement('div');
-                    scaleTable.className = 'scale-table';
-                    
-                    // Create table header
-                    scaleTable.innerHTML = `
-                        <div class="scale-row header">
-                            <div class="scale-cell">Scale</div>
-                            <div class="scale-cell">Top Predictions</div>
-                        </div>
-                    `;
-                    
-                    // Add rows for each scale
-                    data.multi_scale_results.forEach(result => {
-                        const scaleRow = document.createElement('div');
-                        scaleRow.className = 'scale-row';
-                        
-                        // Scale column
-                        const scaleCell = document.createElement('div');
-                        scaleCell.className = 'scale-cell';
-                        scaleCell.textContent = `${result.scale * 100}%`;
-                        scaleRow.appendChild(scaleCell);
-                        
-                        // Predictions column
-                        const predCell = document.createElement('div');
-                        predCell.className = 'scale-cell predictions';
-                        
-                        // Create prediction tags
-                        result.predictions.forEach(pred => {
-                            const predTag = document.createElement('span');
-                            predTag.className = 'scale-tag';
-                            predTag.style.background = getConfidenceGradient(pred.confidence);
-                            predTag.textContent = `${pred.label} (${(pred.confidence * 100).toFixed(1)}%)`;
-                            predCell.appendChild(predTag);
-                        });
-                        
-                        scaleRow.appendChild(predCell);
-                        scaleTable.appendChild(scaleRow);
-                    });
-                    
-                    multiScaleContainer.appendChild(scaleTable);
-                } else {
-                    multiScaleContainer.innerHTML = '<div class="no-predictions">No multi-scale analysis available.</div>';
-                }
-
-                // Add dominant labels display
-                const dominantContainer = document.getElementById('dominant-labels');
-                dominantContainer.innerHTML = '';
-
-                if (data.dominant_labels && data.dominant_labels.length > 0) {
-                    const dominantList = document.createElement('div');
-                    dominantList.className = 'dominant-list';
-                    
-                    data.dominant_labels.forEach((item, index) => {
-                        const dominantItem = document.createElement('div');
-                        dominantItem.className = 'dominant-item';
-                        
-                        // Create confidence bar
-                        const confidenceBar = document.createElement('div');
-                        confidenceBar.className = 'confidence-bar';
-                        
-                        const barFill = document.createElement('div');
-                        barFill.className = 'bar-fill';
-                        barFill.style.width = `${item.confidence * 100}%`;
-                        barFill.style.background = getConfidenceGradient(item.confidence);
-                        confidenceBar.appendChild(barFill);
-                        
-                        // Label and percentage
-                        const labelText = document.createElement('div');
-                        labelText.className = 'dominant-label';
-                        labelText.innerHTML = `<strong>${index+1}. ${item.label}</strong> <span class="confidence-value">${(item.confidence * 100).toFixed(1)}%</span>`;
-                        
-                        dominantItem.appendChild(labelText);
-                        dominantItem.appendChild(confidenceBar);
-                        dominantList.appendChild(dominantItem);
-                    });
-                    
-                    dominantContainer.appendChild(dominantList);
-                } else {
-                    dominantContainer.innerHTML = '<div class="no-predictions">No dominant features available.</div>';
-                }
-
-                // Show results with a smooth scroll
-                document.getElementById('results').style.display = 'block';
-                document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
-            })
+            .then(handleAnalysisResults)
             .catch(error => {
                 console.error('Error:', error);
                 alert('An error occurred while processing the image.');
                 document.getElementById('loading').style.display = 'none';
             });
         });
+
+        // Add this function before the handleAnalysisResults function if it's not there
+        function getConfidenceGradient(confidence) {
+            // Red (low) to Yellow (medium) to Green (high)
+            if (confidence < 0.5) {
+                // Red to Yellow gradient
+                const ratio = confidence / 0.5;
+                const r = 255;
+                const g = Math.round(255 * ratio);
+                const b = 0;
+                return `rgb(${r}, ${g}, ${b})`;
+            } else {
+                // Yellow to Green gradient
+                const ratio = (confidence - 0.5) / 0.5;
+                const r = Math.round(255 * (1 - ratio));
+                const g = 255;
+                const b = 0;
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+        }
+
+        // Create a reusable function to handle API response
+        function handleAnalysisResults(data) {
+            // Hide loading spinner
+            document.getElementById('loading').style.display = 'none';
+            
+            // Display the original and enhanced images
+            document.getElementById('original-image').src = data.original_image;
+            document.getElementById('enhanced-image').src = data.enhanced_image;
+            document.getElementById('annotated-image').src = data.annotated_image;
+            document.getElementById('grid-visualization').src = data.grid_visualization;
+            document.getElementById('enhanced-grid-viz').src = data.enhanced_grid_viz;
+            document.getElementById('saliency-map').src = data.saliency_map;
+            document.getElementById('segmentation').src = data.segmentation;
+
+            // Display prediction results
+            const predictionsContainer = document.getElementById('prediction-results');
+            predictionsContainer.innerHTML = '';
+            
+            if (data.predicted_labels && data.predicted_labels.length > 0) {
+                data.predicted_labels.forEach(label => {
+                    const tag = document.createElement('div');
+                    tag.className = 'prediction-tag';
+                    tag.innerHTML = `<i class="fas fa-check-circle"></i> ${label}`;
+                    predictionsContainer.appendChild(tag);
+                });
+            } else {
+                predictionsContainer.innerHTML = '<div class="no-predictions">No categories detected.</div>';
+            }
+
+            // Process multi-scale analysis
+            const multiScaleContainer = document.getElementById('multi-scale-results');
+            multiScaleContainer.innerHTML = '';
+
+            if (data.multi_scale_results && data.multi_scale_results.length > 0) {
+                // Process multi-scale results as before
+                const scaleTable = document.createElement('div');
+                scaleTable.className = 'scale-table';
+                
+                // Create table header
+                scaleTable.innerHTML = `
+                    <div class="scale-row header">
+                        <div class="scale-cell">Scale</div>
+                        <div class="scale-cell">Top Predictions</div>
+                    </div>
+                `;
+                
+                // Add rows for each scale
+                data.multi_scale_results.forEach(result => {
+                    // Process scale results as before
+                    const scaleRow = document.createElement('div');
+                    scaleRow.className = 'scale-row';
+                    
+                    // Scale column
+                    const scaleCell = document.createElement('div');
+                    scaleCell.className = 'scale-cell';
+                    scaleCell.textContent = `${result.scale * 100}%`;
+                    scaleRow.appendChild(scaleCell);
+                    
+                    // Predictions column
+                    const predCell = document.createElement('div');
+                    predCell.className = 'scale-cell predictions';
+                    
+                    // Create prediction tags
+                    result.predictions.forEach(pred => {
+                        const predTag = document.createElement('span');
+                        predTag.className = 'scale-tag';
+                        predTag.style.background = getConfidenceGradient(pred.confidence);
+                        predTag.textContent = `${pred.label} (${(pred.confidence * 100).toFixed(1)}%)`;
+                        predCell.appendChild(predTag);
+                    });
+                    
+                    scaleRow.appendChild(predCell);
+                    scaleTable.appendChild(scaleRow);
+                });
+                
+                multiScaleContainer.appendChild(scaleTable);
+            } else {
+                multiScaleContainer.innerHTML = '<div class="no-predictions">No multi-scale analysis available.</div>';
+            }
+
+            // Add dominant labels display
+            const dominantContainer = document.getElementById('dominant-labels');
+            dominantContainer.innerHTML = '';
+
+            if (data.dominant_labels && data.dominant_labels.length > 0) {
+                const dominantList = document.createElement('div');
+                dominantList.className = 'dominant-list';
+                
+                data.dominant_labels.forEach((item, index) => {
+                    const dominantItem = document.createElement('div');
+                    dominantItem.className = 'dominant-item';
+                    
+                    // Create confidence bar
+                    const confidenceBar = document.createElement('div');
+                    confidenceBar.className = 'confidence-bar';
+                    
+                    const barFill = document.createElement('div');
+                    barFill.className = 'bar-fill';
+                    barFill.style.width = `${item.confidence * 100}%`;
+                    barFill.style.background = getConfidenceGradient(item.confidence);
+                    confidenceBar.appendChild(barFill);
+                    
+                    // Label and percentage
+                    const labelText = document.createElement('div');
+                    labelText.className = 'dominant-label';
+                    labelText.innerHTML = `<strong>${index+1}. ${item.label}</strong> <span class="confidence-value">${(item.confidence * 100).toFixed(1)}%</span>`;
+                    
+                    dominantItem.appendChild(labelText);
+                    dominantItem.appendChild(confidenceBar);
+                    dominantList.appendChild(dominantItem);
+                });
+                
+                dominantContainer.appendChild(dominantList);
+            } else {
+                dominantContainer.innerHTML = '<div class="no-predictions">No dominant features available.</div>';
+            }
+
+            // Show geospatial container and report section
+            document.getElementById('geospatial-container').style.display = 'block';
+            document.getElementById('report-section').style.display = 'block';
+            
+            // Initialize map with a slight delay to ensure the container is visible
+            setTimeout(() => {
+                initializeMap();
+            }, 100);
+
+            // Show results with a smooth scroll
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
 
         // Helper function to get gradient color based on confidence
         function getConfidenceGradient(confidence) {
@@ -819,7 +1007,460 @@
                 modal.style.display = "none";
             }
         });
+
+        // Geospatial functionality
+        // Remove redundant declarations as 'map' and 'marker' are already declared earlier
+        const geospatialContainer = document.getElementById('geospatial-container');
+        const reportSection = document.getElementById('report-section');
+
+        // Initialize map (hidden initially)
+        function initializeMap(lat = 40.7128, lng = -74.0060) {
+            if (map) map.remove();
+            map = L.map('map').setView([lat, lng], 10);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            marker = L.marker([lat, lng], {draggable: true}).addTo(map);
+            marker.on('dragend', function() {
+                const position = marker.getLatLng();
+                document.getElementById('latitude').value = position.lat.toFixed(6);
+                document.getElementById('longitude').value = position.lng.toFixed(6);
+            });
+        }
+
+        // Update map when coordinates change
+        document.getElementById('update-coords').addEventListener('click', function() {
+            const lat = parseFloat(document.getElementById('latitude').value) || 40.7128;
+            const lng = parseFloat(document.getElementById('longitude').value) || -74.0060;
+            
+            if (map) {
+                map.setView([lat, lng], 10);
+                marker.setLatLng([lat, lng]);
+            } else {
+                initializeMap(lat, lng);
+            }
+        });
+
+        // PDF Report Generation
+        document.getElementById('generate-report').addEventListener('click', async function() {
+            const progressBar = document.querySelector('#pdf-progress .progress-bar');
+            document.getElementById('pdf-progress').style.display = 'block';
+            
+            try {
+                // Initialize jsPDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                let yPos = 20;
+                
+                // Title
+                doc.setFontSize(22);
+                doc.setTextColor(40, 40, 40);
+                doc.text('Satellite Image Analysis Report', 105, yPos, { align: 'center' });
+                yPos += 10;
+                
+                // Date
+                doc.setFontSize(12);
+                doc.setTextColor(80, 80, 80);
+                doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, yPos, { align: 'center' });
+                yPos += 20;
+                
+                progressBar.style.width = '10%';
+                
+                // Geospatial information
+                if (document.getElementById('latitude').value && document.getElementById('longitude').value) {
+                    doc.setFontSize(16);
+                    doc.setTextColor(40, 40, 40);
+                    doc.text('Geospatial Information', 20, yPos);
+                    yPos += 10;
+                    
+                    doc.setFontSize(12);
+                    doc.text(`Latitude: ${document.getElementById('latitude').value}`, 20, yPos);
+                    yPos += 8;
+                    doc.text(`Longitude: ${document.getElementById('longitude').value}`, 20, yPos);
+                    yPos += 15;
+                }
+                
+                progressBar.style.width = '20%';
+                
+                // Add dominant features
+                doc.setFontSize(16);
+                doc.setTextColor(40, 40, 40);
+                doc.text('Dominant Features', 20, yPos);
+                yPos += 10;
+                
+                const dominantItems = document.querySelectorAll('.dominant-item');
+                if (dominantItems.length > 0) {
+                    dominantItems.forEach((item, index) => {
+                        const labelText = item.querySelector('.dominant-label').textContent.trim();
+                        doc.setFontSize(12);
+                        doc.text(`${labelText}`, 20, yPos);
+                        yPos += 8;
+                        
+                        // Don't let content go off page
+                        if (yPos > 270) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                    });
+                } else {
+                    doc.setFontSize(12);
+                    doc.text('No dominant features detected', 20, yPos);
+                }
+                yPos += 15;
+                
+                progressBar.style.width = '40%';
+                
+                // Add original image
+                if (document.getElementById('original-image').src) {
+                    doc.setFontSize(16);
+                    doc.text('Original Image', 20, yPos);
+                    yPos += 10;
+                    
+                    try {
+                        await new Promise(resolve => {
+                            const img = new Image();
+                            img.crossOrigin = 'Anonymous';
+                            img.onload = () => {
+                                // Calculate aspect ratio to fit in PDF
+                                const imgWidth = 170;
+                                const imgHeight = imgWidth * img.height / img.width;
+                                
+                                // Check if image will fit on current page
+                                if (yPos + imgHeight > 270) {
+                                    doc.addPage();
+                                    yPos = 20;
+                                }
+                                
+                                doc.addImage(img, 'JPEG', 20, yPos, imgWidth, imgHeight);
+                                yPos += imgHeight + 15;
+                                resolve();
+                            };
+                            img.onerror = () => {
+                                doc.text('(Image could not be loaded)', 20, yPos);
+                                yPos += 10;
+                                resolve();
+                            };
+                            img.src = document.getElementById('original-image').src;
+                        });
+                    } catch (err) {
+                        console.error('Error adding image to PDF:', err);
+                    }
+                }
+                
+                progressBar.style.width = '60%';
+                
+                // Add enhanced grid analysis
+                if (document.getElementById('enhanced-grid-viz').src) {
+                    doc.setFontSize(16);
+                    doc.text('Enhanced Grid Analysis', 20, yPos);
+                    yPos += 10;
+                    
+                    try {
+                        await new Promise(resolve => {
+                            const img = new Image();
+                            img.crossOrigin = 'Anonymous';
+                            img.onload = () => {
+                                // Calculate aspect ratio to fit in PDF
+                                const imgWidth = 170;
+                                const imgHeight = imgWidth * img.height / img.width;
+                                
+                                // Check if image will fit on current page
+                                if (yPos + imgHeight > 270) {
+                                    doc.addPage();
+                                    yPos = 20;
+                                }
+                                
+                                doc.addImage(img, 'JPEG', 20, yPos, imgWidth, imgHeight);
+                                yPos += imgHeight + 15;
+                                resolve();
+                            };
+                            img.onerror = () => {
+                                doc.text('(Image could not be loaded)', 20, yPos);
+                                yPos += 10;
+                                resolve();
+                            };
+                            img.src = document.getElementById('enhanced-grid-viz').src;
+                        });
+                    } catch (err) {
+                        console.error('Error adding image to PDF:', err);
+                    }
+                }
+                
+                progressBar.style.width = '80%';
+                
+                // Add predictions
+                doc.setFontSize(16);
+                doc.text('Detected Landscape Features', 20, yPos);
+                yPos += 10;
+                
+                const predictions = document.querySelectorAll('.prediction-tag');
+                if (predictions.length > 0) {
+                    let predictionText = '';
+                    predictions.forEach((tag, index) => {
+                        predictionText += tag.textContent.trim() + (index < predictions.length - 1 ? ', ' : '');
+                    });
+                    
+                    doc.setFontSize(12);
+                    // Wrap text if needed
+                    const splitText = doc.splitTextToSize(predictionText, 170);
+                    doc.text(splitText, 20, yPos);
+                    yPos += splitText.length * 8 + 10;
+                } else {
+                    doc.setFontSize(12);
+                    doc.text('No landscape features detected', 20, yPos);
+                    yPos += 10;
+                }
+                
+                progressBar.style.width = '100%';
+                
+                // Footer
+                doc.setFontSize(10);
+                doc.setTextColor(100, 100, 100);
+                doc.text('Generated by Satellite Image Classification System', 105, 285, { align: 'center' });
+                
+                // Save the PDF
+                doc.save('satellite-image-analysis.pdf');
+                
+                // Hide progress bar after a moment
+                setTimeout(() => {
+                    document.getElementById('pdf-progress').style.display = 'none';
+                    progressBar.style.width = '0%';
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('There was an error generating the PDF report.');
+                document.getElementById('pdf-progress').style.display = 'none';
+            }
+        });
+
+        // Toggle between upload and map selection options
+        document.getElementById('upload-toggle').addEventListener('click', function() {
+            this.classList.add('active');
+            document.getElementById('map-toggle').classList.remove('active');
+            document.getElementById('upload-option').style.display = 'block';
+            document.getElementById('map-option').style.display = 'none';
+        });
+
+        document.getElementById('map-toggle').addEventListener('click', function() {
+            this.classList.add('active');
+            document.getElementById('upload-toggle').classList.remove('active');
+            document.getElementById('upload-option').style.display = 'none';
+            document.getElementById('map-option').style.display = 'block';
+            
+            // Initialize the selection map if not already done
+            if (!selectionMap) {
+                initSelectionMap();
+            }
+        });
+
+        // Map selection functionality
+        let selectionMap;
+        let drawnItems;
+        let selectedBounds;
+
+        function initSelectionMap() {
+            selectionMap = L.map('selection-map').setView([40.7128, -74.0060], 13);
+            
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+                maxZoom: 19
+            }).addTo(selectionMap);
+            
+            // Initialize the FeatureGroup to store drawn items
+            drawnItems = new L.FeatureGroup();
+            selectionMap.addLayer(drawnItems);
+            
+            // Initialize the draw control and add it to the map
+            const drawControl = new L.Control.Draw({
+                draw: {
+                    polygon: false,
+                    polyline: false,
+                    circle: false,
+                    marker: false,
+                    circlemarker: false,
+                    rectangle: {
+                        shapeOptions: {
+                            color: '#4361ee',
+                            fillOpacity: 0.2
+                        }
+                    }
+                },
+                edit: {
+                    featureGroup: drawnItems,
+                    remove: false
+                }
+            });
+            selectionMap.addControl(drawControl);
+            
+            // Handle the creation of a new rectangle
+            selectionMap.on('draw:created', function(event) {
+                // Remove any previous selections
+                drawnItems.clearLayers();
+                
+                // Add the new selection
+                const layer = event.layer;
+                drawnItems.addLayer(layer);
+                
+                // Store the bounds of the selected rectangle
+                selectedBounds = layer.getBounds();
+                
+                // Log selection for debugging
+                logMapSelection(selectedBounds);
+                
+                // Enable the analyze button
+                document.getElementById('analyze-region').disabled = false;
+            });
+            
+            // Clear selection button
+            document.getElementById('clear-selection').addEventListener('click', function() {
+                drawnItems.clearLayers();
+                selectedBounds = null;
+                document.getElementById('analyze-region').disabled = true;
+            });
+        }
+
+        // Function to capture map region and send for analysis
+        document.getElementById('analyze-region').addEventListener('click', async function() {
+            if (!selectedBounds) {
+                alert('Please select a region on the map first.');
+                return;
+            }
+            
+            // Show loading spinner
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            
+            try {
+                // Calculate the center and zoom level to fit the bounds
+                selectionMap.fitBounds(selectedBounds);
+                
+                // Wait longer for map tiles to fully load (important!)
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Hide map controls before capture
+                const controls = document.querySelectorAll('.leaflet-control-container');
+                controls.forEach(el => el.style.display = 'none');
+                
+                // Use html2canvas with better settings for map capture
+                const canvas = await html2canvas(document.getElementById('selection-map'), {
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: true,
+                    backgroundColor: null,
+                    scale: 2, // Higher resolution capture
+                    imageTimeout: 0, // No timeout for image loading
+                    proxy: null // Disable proxy which can cause issues
+                });
+                
+                // Show controls again
+                controls.forEach(el => el.style.display = '');
+                
+                // Debug info
+                console.log('Canvas captured:', canvas.width, 'x', canvas.height);
+                
+                // Convert canvas to a data URL first (more reliable than direct blob)
+                const dataURL = canvas.toDataURL('image/png', 1.0);
+                
+                // Convert data URL to blob manually
+                const byteString = atob(dataURL.split(',')[1]);
+                const mimeString = dataURL.split(',')[0].split(':')[1].split(';')[0];
+                const arrayBuffer = new ArrayBuffer(byteString.length);
+                const ia = new Uint8Array(arrayBuffer);
+                
+                for (let i = 0; i < byteString.length; i++) {
+                    ia[i] = byteString.charCodeAt(i);
+                }
+                
+                const blob = new Blob([arrayBuffer], {type: mimeString});
+                
+                // Create FormData and append the image blob
+                const formData = new FormData();
+                formData.append('image', blob, 'map-selection.png');
+                
+                // Add coordinates metadata
+                const bounds = selectedBounds;
+                formData.append('north', bounds.getNorth());
+                formData.append('south', bounds.getSouth());
+                formData.append('east', bounds.getEast());
+                formData.append('west', bounds.getWest());
+                
+                console.log('Sending map selection to server...');
+                
+                // Send to the API endpoint
+                fetch('http://127.0.0.1:5000/', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Response received from server');
+                    handleAnalysisResults(data);
+                })
+                .catch(error => {
+                    console.error('Error processing region:', error);
+                    alert('An error occurred while processing the selected region.');
+                    document.getElementById('loading').style.display = 'none';
+                });
+            } catch (error) {
+                console.error('Error capturing map region:', error);
+                alert('Failed to capture the selected map region: ' + error.message);
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
+
+        // Geospatial functionality (enhanced from original)
+        // Note: map and marker variables are already declared earlier
+
+        // Initialize map with satellite imagery
+        function initializeMap(lat = 40.7128, lng = -74.0060) {
+            if (map) map.remove();
+            map = L.map('map').setView([lat, lng], 13);
+            
+            // Use satellite imagery tiles
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+                maxZoom: 19
+            }).addTo(map);
+            
+            marker = L.marker([lat, lng], {draggable: true}).addTo(map);
+            marker.on('dragend', function() {
+                const position = marker.getLatLng();
+                document.getElementById('latitude').value = position.lat.toFixed(6);
+                document.getElementById('longitude').value = position.lng.toFixed(6);
+            });
+        }
+
+        // Update map when coordinates change
+        document.getElementById('update-coords').addEventListener('click', function() {
+            const lat = parseFloat(document.getElementById('latitude').value) || 40.7128;
+            const lng = parseFloat(document.getElementById('longitude').value) || -74.0060;
+            
+            if (map) {
+                map.setView([lat, lng], 13);
+                marker.setLatLng([lat, lng]);
+            } else {
+                initializeMap(lat, lng);
+            }
+        });
+
+        // Add this after your existing script opens
+        // Debug helper for map selection
+        function logMapSelection(bounds) {
+            console.log('Map selection bounds:', {
+                north: bounds.getNorth(),
+                south: bounds.getSouth(),
+                east: bounds.getEast(),
+                west: bounds.getWest()
+            });
+        }
     </script>
 </body>
 </html>
-``` 

@@ -392,7 +392,7 @@ def semantic_segmentation(image, n_segments=10):
 def index():
     if request.method == 'POST':
         try:
-            # Get the uploaded image
+            # Get the uploaded image (from file upload or map selection)
             img = Image.open(request.files['image']).convert('RGB')
             
             # Process the image - get both original and enhanced
