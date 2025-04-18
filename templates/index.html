@@ -301,6 +301,170 @@
             color: #666;
             font-style: italic;
         }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 80%;
+            max-height: 80%;
+        }
+        
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+        
+        .close:hover,
+        .close:focus {
+            color: #bbb;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        /* Make grid visualization larger */
+        .grid-container {
+            flex: 0 0 100%; /* Take full width */
+            max-width: 100%;
+            margin-top: 20px;
+        }
+        
+        .grid-container .image-preview {
+            height: auto; /* Let it scale properly */
+            max-height: 600px; /* Much taller */
+            cursor: pointer; /* Indicate it can be clicked */
+        }
+        
+        /* Add a modal for fullscreen viewing */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            overflow: auto;
+        }
+        
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 90%;
+            max-height: 90%;
+        }
+        
+        .modal .close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Add to your existing styles */
+        .analysis-section, .dominant-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: rgba(67, 97, 238, 0.05);
+            border-radius: var(--border-radius);
+        }
+
+        .analysis-section h4, .dominant-section h4 {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .scale-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .scale-row {
+            display: flex;
+            border-bottom: 1px solid #eee;
+        }
+
+        .scale-row.header {
+            font-weight: bold;
+            background-color: rgba(67, 97, 238, 0.1);
+        }
+
+        .scale-cell {
+            padding: 12px 15px;
+            flex: 1;
+        }
+
+        .scale-cell.predictions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .scale-tag {
+            padding: 5px 10px;
+            border-radius: 20px;
+            color: white;
+            font-size: 0.9rem;
+            margin: 3px;
+        }
+
+        .dominant-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .dominant-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .dominant-label {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .confidence-value {
+            font-weight: bold;
+        }
+
+        .confidence-bar {
+            height: 10px;
+            background-color: #eee;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
@@ -356,6 +520,33 @@
                         </div>
                         <img id="annotated-image" class="image-preview" src="" alt="Regions Classified">
                     </div>
+                    <div class="image-container grid-container">
+                        <div class="image-title">
+                            <i class="fas fa-th"></i> Grid Analysis (3×3)
+                        </div>
+                        <img id="grid-visualization" class="image-preview" src="" alt="Grid Analysis">
+                    </div>
+
+                    <div class="image-container grid-container">
+                        <div class="image-title">
+                            <i class="fas fa-chart-bar"></i> Enhanced Grid Analysis
+                        </div>
+                        <img id="enhanced-grid-viz" class="image-preview" src="" alt="Enhanced Grid Analysis">
+                    </div>
+
+                    <div class="image-container">
+                        <div class="image-title">
+                            <i class="fas fa-eye"></i> Model Attention Map
+                        </div>
+                        <img id="saliency-map" class="image-preview" src="" alt="Saliency Map">
+                    </div>
+
+                    <div class="image-container">
+                        <div class="image-title">
+                            <i class="fas fa-object-group"></i> Semantic Segmentation
+                        </div>
+                        <img id="segmentation" class="image-preview" src="" alt="Semantic Segmentation">
+                    </div>
                 </div>
                 
                 <div class="prediction-section">
@@ -364,12 +555,32 @@
                         <!-- Predictions will appear here -->
                     </div>
                 </div>
+
+                <div class="analysis-section">
+                    <h4><i class="fas fa-search-plus"></i> Multi-Scale Analysis</h4>
+                    <div id="multi-scale-results" class="multi-scale-container">
+                        <!-- Multi-scale results will appear here -->
+                    </div>
+                </div>
+
+                <div class="dominant-section">
+                    <h4><i class="fas fa-crown"></i> Dominant Features</h4>
+                    <div id="dominant-labels" class="dominant-container">
+                        <!-- Dominant labels with confidence will appear here -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    
+
     <div class="footer">
         <p>© 2025 Satellite Image Classification System | Powered by Deep Learning</p>
+    </div>
+
+    <!-- Modal for fullscreen view -->
+    <div id="imageModal" class="modal">
+        <span class="close">&times;</span>
+        <img class="modal-content" id="modalImage">
     </div>
 
     <script>
@@ -379,35 +590,40 @@
         const selectedFile = document.getElementById('selected-file');
         const fileName = document.getElementById('file-name');
         
+        // Click to select file
         dropArea.addEventListener('click', () => {
             fileInput.click();
         });
         
+        // Drag over effect
         dropArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropArea.classList.add('active');
         });
         
+        // Drag leave effect
         dropArea.addEventListener('dragleave', () => {
             dropArea.classList.remove('active');
         });
         
+        // Drop file handling
         dropArea.addEventListener('drop', (e) => {
             e.preventDefault();
             dropArea.classList.remove('active');
-            
             if (e.dataTransfer.files.length) {
                 fileInput.files = e.dataTransfer.files;
                 updateFileName(e.dataTransfer.files[0].name);
             }
         });
         
+        // File input change
         fileInput.addEventListener('change', () => {
             if (fileInput.files.length) {
                 updateFileName(fileInput.files[0].name);
             }
         });
         
+        // Update file name display
         function updateFileName(name) {
             fileName.textContent = name;
             selectedFile.style.display = 'block';
@@ -416,7 +632,6 @@
         // Form submission
         document.getElementById('upload-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            
             const file = fileInput.files[0];
             
             if (!file) {
@@ -441,16 +656,14 @@
                 document.getElementById('loading').style.display = 'none';
                 
                 // Display the original and enhanced images
-                const originalImage = document.getElementById('original-image');
-                const enhancedImage = document.getElementById('enhanced-image');
-                
-                // Use the base64 images returned from the server
-                originalImage.src = data.original_image;
-                enhancedImage.src = data.enhanced_image;
-                
-                // Add this line to display the annotated image
+                document.getElementById('original-image').src = data.original_image;
+                document.getElementById('enhanced-image').src = data.enhanced_image;
                 document.getElementById('annotated-image').src = data.annotated_image;
-                
+                document.getElementById('grid-visualization').src = data.grid_visualization;
+                document.getElementById('enhanced-grid-viz').src = data.enhanced_grid_viz;
+                document.getElementById('saliency-map').src = data.saliency_map;
+                document.getElementById('segmentation').src = data.segmentation;
+
                 // Display prediction results
                 const predictionsContainer = document.getElementById('prediction-results');
                 predictionsContainer.innerHTML = '';
@@ -465,7 +678,93 @@
                 } else {
                     predictionsContainer.innerHTML = '<div class="no-predictions">No categories detected.</div>';
                 }
-                
+
+                // Add multi-scale analysis display
+                const multiScaleContainer = document.getElementById('multi-scale-results');
+                multiScaleContainer.innerHTML = '';
+
+                if (data.multi_scale_results && data.multi_scale_results.length > 0) {
+                    const scaleTable = document.createElement('div');
+                    scaleTable.className = 'scale-table';
+                    
+                    // Create table header
+                    scaleTable.innerHTML = `
+                        <div class="scale-row header">
+                            <div class="scale-cell">Scale</div>
+                            <div class="scale-cell">Top Predictions</div>
+                        </div>
+                    `;
+                    
+                    // Add rows for each scale
+                    data.multi_scale_results.forEach(result => {
+                        const scaleRow = document.createElement('div');
+                        scaleRow.className = 'scale-row';
+                        
+                        // Scale column
+                        const scaleCell = document.createElement('div');
+                        scaleCell.className = 'scale-cell';
+                        scaleCell.textContent = `${result.scale * 100}%`;
+                        scaleRow.appendChild(scaleCell);
+                        
+                        // Predictions column
+                        const predCell = document.createElement('div');
+                        predCell.className = 'scale-cell predictions';
+                        
+                        // Create prediction tags
+                        result.predictions.forEach(pred => {
+                            const predTag = document.createElement('span');
+                            predTag.className = 'scale-tag';
+                            predTag.style.background = getConfidenceGradient(pred.confidence);
+                            predTag.textContent = `${pred.label} (${(pred.confidence * 100).toFixed(1)}%)`;
+                            predCell.appendChild(predTag);
+                        });
+                        
+                        scaleRow.appendChild(predCell);
+                        scaleTable.appendChild(scaleRow);
+                    });
+                    
+                    multiScaleContainer.appendChild(scaleTable);
+                } else {
+                    multiScaleContainer.innerHTML = '<div class="no-predictions">No multi-scale analysis available.</div>';
+                }
+
+                // Add dominant labels display
+                const dominantContainer = document.getElementById('dominant-labels');
+                dominantContainer.innerHTML = '';
+
+                if (data.dominant_labels && data.dominant_labels.length > 0) {
+                    const dominantList = document.createElement('div');
+                    dominantList.className = 'dominant-list';
+                    
+                    data.dominant_labels.forEach((item, index) => {
+                        const dominantItem = document.createElement('div');
+                        dominantItem.className = 'dominant-item';
+                        
+                        // Create confidence bar
+                        const confidenceBar = document.createElement('div');
+                        confidenceBar.className = 'confidence-bar';
+                        
+                        const barFill = document.createElement('div');
+                        barFill.className = 'bar-fill';
+                        barFill.style.width = `${item.confidence * 100}%`;
+                        barFill.style.background = getConfidenceGradient(item.confidence);
+                        confidenceBar.appendChild(barFill);
+                        
+                        // Label and percentage
+                        const labelText = document.createElement('div');
+                        labelText.className = 'dominant-label';
+                        labelText.innerHTML = `<strong>${index+1}. ${item.label}</strong> <span class="confidence-value">${(item.confidence * 100).toFixed(1)}%</span>`;
+                        
+                        dominantItem.appendChild(labelText);
+                        dominantItem.appendChild(confidenceBar);
+                        dominantList.appendChild(dominantItem);
+                    });
+                    
+                    dominantContainer.appendChild(dominantList);
+                } else {
+                    dominantContainer.innerHTML = '<div class="no-predictions">No dominant features available.</div>';
+                }
+
                 // Show results with a smooth scroll
                 document.getElementById('results').style.display = 'block';
                 document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
@@ -475,6 +774,50 @@
                 alert('An error occurred while processing the image.');
                 document.getElementById('loading').style.display = 'none';
             });
+        });
+
+        // Helper function to get gradient color based on confidence
+        function getConfidenceGradient(confidence) {
+            // Red (low) to Yellow (medium) to Green (high)
+            if (confidence < 0.5) {
+                // Red to Yellow gradient
+                const ratio = confidence / 0.5;
+                const r = 255;
+                const g = Math.round(255 * ratio);
+                const b = 0;
+                return `rgb(${r}, ${g}, ${b})`;
+            } else {
+                // Yellow to Green gradient
+                const ratio = (confidence - 0.5) / 0.5;
+                const r = Math.round(255 * (1 - ratio));
+                const g = 255;
+                const b = 0;
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+        }
+
+        // Get the modal
+        const modal = document.getElementById("imageModal");
+        const modalImg = document.getElementById("modalImage");
+
+        // Set up click handler for grid visualization to open in modal
+        document.querySelectorAll('.image-preview').forEach(img => {
+            img.addEventListener('click', function() {
+                modal.style.display = "block";
+                modalImg.src = this.src;
+            });
+        });
+
+        // Close modal when clicking X
+        document.querySelector('.close').addEventListener('click', function() {
+            modal.style.display = "none";
+        });
+
+        // Close modal when clicking outside the image
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.style.display = "none";
+            }
         });
     </script>
 </body>
